@@ -1,0 +1,1 @@
+/usr/bin/cc -O2 -g -DNDEBUG  -rdynamic CMakeFiles/mongoc-tail.dir/examples/mongoc-tail.c.o  -o mongoc-tail -Wl,-rpath,/home/xinxing06/DDS/mongo-c-driver-1.17.3/cmake-build/src/libmongoc:/home/xinxing06/DDS/mongo-c-driver-1.17.3/cmake-build/src/libbson libmongoc-1.0.so.0.0.0 -lsasl2 -lssl -lcrypto -lrt -lresolv -lz ../libbson/libbson-1.0.so.0.0.0 -pthread 

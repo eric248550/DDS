@@ -1,0 +1,5 @@
+# Hashes of file build rules.
+719e0d517eef0bac640bceccc7361de5 CMakeFiles/dist
+719e0d517eef0bac640bceccc7361de5 CMakeFiles/distcheck
+288c7ffd16ff7f288ef6acad9236bd25 generate_uninstall/CMakeFiles/uninstall
+4327d28abb7bc7324ed7fc053055e880 src/libmongoc/CMakeFiles/check

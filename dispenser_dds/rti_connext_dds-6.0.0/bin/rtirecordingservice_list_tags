@@ -1,0 +1,83 @@
+#!/bin/sh
+#########################################################################
+# (c) 2005-2018 Copyright, Real-Time Innovations. All rights reserved.  #
+# No duplications, whole or partial, manual or electronic, may be made  #
+# without express written permission.  Any such copies, or              #
+# revisions thereof, must display this notice unaltered.                #
+# This code contains trade secrets of Real-Time Innovations, Inc.       #
+#########################################################################
+
+# Note: since this script does not run any binary, we do not source "rticommon"
+
+# initialize
+list_tags_usage=`cat << EOF
+$(basename $0) help:
+
+$(basename $0) [options]
+options:
+-h              : show this help
+-d <directory>  : the directory that contains a recorder database
+                  to be used to list any tags
+EOF
+`
+
+
+# check preconditions
+if [ $# -lt 1 ]; then
+    echo "error: check usage"
+    echo "$list_tags_usage"
+    exit 1
+fi
+
+sqlite3 -version >/dev/null 2>/dev/null
+if [ $? -ne 0 ]; then
+    echo "error: failed to invoke sqlite3;" \
+        "please ensure that you have installed sqlite3 from a trusted source " \
+        "and that sqlite3 is in your PATH"
+    exit 1
+fi
+
+# parse command-line arguments (the path to the directory with the recording)
+while [ $# -gt 0 ]; do
+    case $1 in
+        -d)
+            # we are specifying the directory with the recorded database
+            # so we expect two arguments
+            if [ $# -lt 2 ]; then
+                echo 1>&2 "error: -d requires an argument"
+                echo 1>&2 "$list_tags_usage"
+                exit 1
+            fi
+            # consume -d
+            shift
+            # consume <directory> 
+            list_tags_directory=$1
+            shift
+            # react to -d <dir>
+            if [ ! -f "$list_tags_directory/metadata" ]; then
+                echo 1>&2 "error: the directory '$list_tags_directory' " \
+                        "does not contain a metadata database"
+                echo 1>&2 "$list_tags_usage"
+                exit 1
+            fi
+            sqlite3 -header -column "$list_tags_directory/metadata" << EOF
+SELECT * FROM SymbolicTimestamps;
+EOF
+            list_tags_ret=$?
+            if [ $list_tags_ret -ne 0 ]; then
+                exit $list_tags_ret
+            fi
+        ;;
+        -h)
+            # consume -h
+            shift
+            # display help
+            echo "$list_tags_usage"
+        ;;
+        *)
+            echo "error: unrecognized argument '$1'"
+            exit 1
+        ;;
+    esac
+done
+

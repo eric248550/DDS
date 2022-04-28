@@ -1,0 +1,268 @@
+<rti>
+    <!-- General -->
+    <host>
+        <platform>x64Linux</platform>
+        <base_version>6.0.0</base_version>
+        <installation_type>RTI Connext DDS Eval</installation_type>
+    </host>
+
+                    
+    <admin_console>
+        <installation>
+            <architecture>x64Linux2.6gcc4.4.5</architecture>
+            <version>6.0.0</version>
+            <licensed>licensed</licensed>
+        </installation>
+    </admin_console>
+                            
+    <cloud_discovery_service>
+        <installation>
+            <architecture>x64Linux2.6gcc4.4.5</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </cloud_discovery_service>
+                            
+    <core_api_docs>
+        <installation>
+            <architecture>x64Linux</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </core_api_docs>
+                            
+    <core_jars>
+        <installation>
+            <architecture>java</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </core_jars>
+                            
+    <core_release_docs>
+        <installation>
+            <architecture>x64Linux</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </core_release_docs>
+                            
+    <examples>
+        <installation>
+            <architecture>x64Linux</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </examples>
+                            
+    <header_files>
+        <installation>
+            <architecture>x64Linux</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </header_files>
+                            
+    <host_files>
+        <installation>
+            <architecture>x64Linux</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </host_files>
+                            
+    <host_jre>
+        <installation>
+            <architecture>x64Linux</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </host_jre>
+                            
+    <launcher>
+        <installation>
+            <architecture>java</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </launcher>
+                            
+    <metp>
+        <installation>
+            <architecture>x64Linux3gcc5.4.0</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </metp>
+                            
+    <monitor>
+        <installation>
+            <architecture>java</architecture>
+            <version>6.0.0</version>
+            <licensed>licensed</licensed>
+        </installation>
+    </monitor>
+                            
+    <persistence_service_host>
+        <installation>
+            <architecture>x64Linux2.6gcc4.4.5</architecture>
+            <version>6.0.0</version>
+            <licensed>licensed</licensed>
+        </installation>
+    </persistence_service_host>
+                            
+    <persistence_service>
+        <installation>
+            <architecture>x64Linux2.6gcc4.4.5</architecture>
+            <version>6.0.0</version>
+            <licensed>licensed</licensed>
+        </installation>
+    </persistence_service>
+                            
+    <recording_service_host>
+        <installation>
+            <architecture>x64Linux2.6gcc4.4.5</architecture>
+            <version>6.0.0</version>
+            <licensed>licensed</licensed>
+        </installation>
+    </recording_service_host>
+                            
+    <recording_service>
+        <installation>
+            <architecture>x64Linux2.6gcc4.4.5</architecture>
+            <version>6.0.0</version>
+            <licensed>licensed</licensed>
+        </installation>
+    </recording_service>
+                            
+    <recording_service_sdk_host>
+        <installation>
+            <architecture>x64Linux2.6gcc4.4.5</architecture>
+            <version>6.0.0</version>
+            <licensed>licensed</licensed>
+        </installation>
+    </recording_service_sdk_host>
+                            
+    <recording_service_sdk>
+        <installation>
+            <architecture>x64Linux3gcc5.4.0</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </recording_service_sdk>
+                            
+    <request_reply_host>
+        <installation>
+            <architecture>java</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </request_reply_host>
+                            
+    <request_reply>
+        <installation>
+            <architecture>x64Linux3gcc5.4.0</architecture>
+            <version>6.0.0</version>
+            <licensed>licensed</licensed>
+        </installation>
+    </request_reply>
+                            
+    <routing_service_host>
+        <installation>
+            <architecture>x64Linux2.6gcc4.4.5</architecture>
+            <version>6.0.0</version>
+            <licensed>licensed</licensed>
+        </installation>
+    </routing_service_host>
+                            
+    <routing_service_sdk>
+        <installation>
+            <architecture>x64Linux3gcc5.4.0</architecture>
+            <version>6.0.0</version>
+            <licensed>licensed</licensed>
+        </installation>
+    </routing_service_sdk>
+                            
+    <routing_service_sdk_jars>
+        <installation>
+            <architecture>java</architecture>
+            <version>6.0.0</version>
+            <licensed>licensed</licensed>
+        </installation>
+    </routing_service_sdk_jars>
+                            
+    <routing_service>
+        <installation>
+            <architecture>x64Linux2.6gcc4.4.5</architecture>
+            <version>6.0.0</version>
+            <licensed>licensed</licensed>
+        </installation>
+    </routing_service>
+                            
+    <rtiddsgen>
+        <installation>
+            <architecture>java</architecture>
+            <version>6.0.0</version>
+            <component_version>3.0.0.00</component_version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </rtiddsgen>
+                            
+    <rtiddsmag>
+        <installation>
+            <architecture>java</architecture>
+            <version>6.0.0</version>
+            <component_version>1.0.0.0</component_version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </rtiddsmag>
+                            
+    <shapes_demo>
+        <installation>
+            <architecture>x64Linux2.6gcc4.4.5</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </shapes_demo>
+                            
+    <shared_tools_libraries>
+        <installation>
+            <architecture>x64Linux2.6gcc4.4.5</architecture>
+            <version>6.0.0</version>
+            <licensed>licensed</licensed>
+        </installation>
+    </shared_tools_libraries>
+                            
+    <shared_tools_jars>
+        <installation>
+            <architecture>java</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </shared_tools_jars>
+                            
+    <target_libraries>
+        <installation>
+            <architecture>x64Linux3gcc5.4.0</architecture>
+            <version>6.0.0</version>
+            <licensed>licensed</licensed>
+        </installation>
+    </target_libraries>
+                            
+    <utilities>
+        <installation>
+            <architecture>x64Linux2.6gcc4.4.5</architecture>
+            <version>6.0.0</version>
+            <licensed>unlicensed</licensed>
+        </installation>
+    </utilities>
+                            
+    <!-- Installation log -->
+    <installation_log>
+        <stardate>2020-06-04T08:38:09</stardate>
+        <kind>RTI Connext DDS Eval 6.0.0 Installation</kind>
+        <architecture>x64Linux</architecture>
+        <license_accepted>Accepted with UI</license_accepted>
+    </installation_log>
+</rti>
+                    

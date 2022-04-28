@@ -1,0 +1,777 @@
+/* (c) Copyright 2003-2018, Real-Time Innovations, Inc. All rights reserved. */
+/* $Id$
+ (c) Copyright, Real-Time Innovations, 2018-2018. 
+ All rights reserved.
+ No duplications, whole or partial, manual or electronic, may be made
+ without express written permission.  Any such copies, or
+ revisions thereof, must display this notice unaltered.
+ This code contains trade secrets of Real-Time Innovations, Inc.
+ 
+Description
+-----------
+Template support code for a sequence of name-value pairs. Included by TSeq.c.
+============================================================================== */
+
+/*
+ * This file uses definitions from TSeq, so it can't be compiled unless
+ * included by TSeq. Without this #ifdef here, we will try and fail to compile
+ * this file on its own.
+ */
+#ifdef RTI_NAME_VALUE_SEQ
+
+#include "dds_c/dds_c_xml.h"
+
+#define initialize_element_c(TSeq) concatenate(TSeq, _initialize_element)
+#define TSeq_initialize_element initialize_element_c(TSeq)
+
+#define finalize_element_c(TSeq) concatenate(TSeq, _finalize_element)
+#define TSeq_finalize_element finalize_element_c(TSeq)
+
+#define copy_element_c(TSeq) concatenate(TSeq, _copy_element)
+#define TSeq_copy_element copy_element_c(TSeq)
+
+#define from_presentation_sequence_c(TSeq) concatenate(TSeq, _from_presentation_sequence)
+#define TSeq_from_presentation_sequence from_presentation_sequence_c(TSeq)
+
+#define from_presentation_sequence_no_copy_c(TSeq) concatenate(TSeq, _from_presentation_sequence_no_copy)
+#define TSeq_from_presentation_sequence_no_copy from_presentation_sequence_no_copy_c(TSeq)
+
+#define to_presentation_sequence_c(TSeq) concatenate(TSeq, _to_presentation_sequence)
+#define TSeq_to_presentation_sequence to_presentation_sequence_c(TSeq)
+
+#define lookup_element_c(TSeq) concatenate(TSeq, _lookup_element)
+#define TSeq_lookup_element lookup_element_c(TSeq)
+
+#define remove_element_c(TSeq) concatenate(TSeq, _remove_element)
+#define TSeq_remove_element remove_element_c(TSeq)
+
+#define add_or_assert_element_c(TSeq) concatenate(TSeq, _add_or_assert_element)
+#define TSeq_add_or_assert_element add_or_assert_element_c(TSeq)
+
+#define add_element_c(TSeq) concatenate(TSeq, _add_element)
+#define TSeq_add_element add_element_c(TSeq)
+
+#define assert_element_c(TSeq) concatenate(TSeq, _assert_element)
+#define TSeq_assert_element assert_element_c(TSeq)
+
+#define from_presentation_sequence_loan_from_pool_c(TSeq) \
+    concatenate(TSeq, _from_presentation_sequence_loan_from_pool)
+#define TSeq_from_presentation_sequence_loan_from_pool \
+    from_presentation_sequence_loan_from_pool_c(TSeq)
+
+#define return_loan_to_pool_c(TSeq) concatenate(TSeq, _return_loan_to_pool)
+#define TSeq_return_loan_to_pool return_loan_to_pool_c(TSeq)
+
+#define save_c(TSeq) concatenate(TSeq, _save)
+#define TSeq_save save_c(TSeq)
+
+/* ------------------------------------------------------------------
+ * Name/Value Pair Sequence Methods
+ * ------------------------------------------------------------------ */
+
+RTIBool TSeq_initialize_element(T *element)
+{
+  #ifdef T_initialize_additional_members
+    const char *METHOD_NAME = RTI_FUNCTION_NAME;
+  #endif
+
+    element->name = NULL;
+    element->value = NULL;
+  #ifdef T_initialize_additional_members
+    if (!T_initialize_additional_members(element)) {
+        DDSLog_exception(
+                METHOD_NAME,
+                &DDS_LOG_INITIALIZE_FAILURE_s,
+                "additional members");
+        return RTI_FALSE;
+    }
+  #endif
+  return RTI_TRUE;
+}
+
+void TSeq_finalize_element(T *element)
+{
+    if (element->name != NULL) {
+        DDS_String_free(element->name);
+        element->name = NULL;
+    }
+
+    if (element->value != NULL) {
+        DDS_String_free(element->value);
+        element->value = NULL;
+    }
+
+    /* For now, there are no additional members to finalize. */
+}
+
+T *TSeq_copy_element(
+        T *self,
+        const T *from)
+{
+    const char *METHOD_NAME = RTI_FUNCTION_NAME;
+    T *result = NULL;
+
+    if (DDS_String_replace(&self->name, from->name) == NULL) {
+        if (from->name == NULL) {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &DDS_LOG_BAD_PARAMETER_s,
+                    "from->name");
+        } else {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &RTI_OSAPI_MEMORY_LOG_OUT_OF_HEAP_STRING_d,
+                    strlen(from->name));
+        }
+        goto done;
+    }
+
+    if (DDS_String_replace(&self->value, from->value) == NULL) {
+        if (from->value == NULL) {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &DDS_LOG_BAD_PARAMETER_s,
+                    "from->value");
+        } else {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &RTI_OSAPI_MEMORY_LOG_OUT_OF_HEAP_STRING_d,
+                    strlen(from->value));
+        }
+        goto done;
+    }
+
+  #ifdef T_copy_additional_members
+    if (!T_copy_additional_members(self, from)) {
+        DDSLog_exception(
+                METHOD_NAME,
+                &DDS_LOG_COPY_FAILURE_s,
+                "additional members");
+        goto done;
+    }
+  #endif
+
+    result = self;
+done:
+
+    if (result == NULL) {
+        TSeq_finalize_element(self);
+    }
+    return result;
+}
+
+DDS_ReturnCode_t TSeq_from_presentation_sequence(
+        struct TSeq *dst,
+        const struct PRESSequenceProperty *src)
+{
+    const char *METHOD_NAME = RTI_FUNCTION_NAME;
+    DDS_ReturnCode_t retcode = DDS_RETCODE_OK;
+    struct PRESProperty *presProperty = NULL;
+    T *ddsProperty = NULL;
+    int length = 0, i = 0;
+
+    length = src->_length;
+
+    /*
+     * If pres seq is the same as dds seq, there is no need to translate.
+     * Note that we do not check each element ptr.
+     */
+    if (src->_buffer == (void *) TSeq_get_contiguous_bufferI(dst)
+            && src->_maximum == (RTI_UINT32) TSeq_get_maximum(dst)
+            && src->_length == (RTI_UINT32) TSeq_get_length(dst)) {
+        return retcode;
+    }
+
+    if (length == 0) {
+        if (!TSeq_set_length(dst, 0)) {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &DDS_LOG_SET_FAILURE_s,
+                    "length to 0");
+            return DDS_RETCODE_ERROR;
+        }
+        return DDS_RETCODE_OK;
+    }
+
+    ddsProperty = (T *) TSeq_get_contiguous_bufferI(dst);
+
+    /*
+     * NOTE: The assumption is that all buffers used to store the Qos is
+     * calculated on the same properties. This function should not be
+     * called unless this is the case.
+     */
+    if (!TSeq_has_ownership(dst)) {
+        if (length > TSeq_get_maximum(dst)) {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &RTI_LOG_ANY_FAILURE_s,
+                    "not enough space in sequence");
+            return DDS_RETCODE_ERROR;
+        }
+        if (!TSeq_set_length(dst, length)) {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &DDS_LOG_SET_FAILURE_s,
+                    "length of destination");
+            return DDS_RETCODE_ERROR;
+        }
+    } else {
+        if (!TSeq_ensure_length(dst, length, src->_maximum)) {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &RTI_LOG_ANY_FAILURE_s,
+                    "not enough space to store sequence");
+            return DDS_RETCODE_ERROR;
+        }
+    }
+    for (i = 0; i < length; ++i) {
+        ddsProperty = TSeq_get_reference(dst, i);
+        if (ddsProperty == NULL) {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &DDS_LOG_GET_FAILURE_s,
+                    "reference of destination");
+            return DDS_RETCODE_ERROR;
+        }
+        presProperty = &src->_buffer[i];            
+        if (DDS_String_replace(&ddsProperty->name, presProperty->name) == NULL) {
+            if (presProperty->name == NULL) {
+                DDSLog_exception(
+                        METHOD_NAME,
+                        &DDS_LOG_BAD_PARAMETER_s,
+                        "from->name");
+            } else {
+                DDSLog_exception(
+                        METHOD_NAME,
+                        &RTI_OSAPI_MEMORY_LOG_OUT_OF_HEAP_STRING_d,
+                        strlen(presProperty->name));
+            }
+            return DDS_RETCODE_OUT_OF_RESOURCES;
+        }
+        if (DDS_String_replace(&ddsProperty->value, presProperty->value) == NULL) {
+            if (presProperty->value == NULL) {
+                DDSLog_exception(
+                        METHOD_NAME,
+                        &DDS_LOG_BAD_PARAMETER_s,
+                        "from->value");
+            } else {
+                DDSLog_exception(
+                        METHOD_NAME,
+                        &RTI_OSAPI_MEMORY_LOG_OUT_OF_HEAP_STRING_d,
+                        strlen(presProperty->value));
+            }
+            return DDS_RETCODE_OUT_OF_RESOURCES;
+        }
+  #ifdef T_copy_additional_members_from_presentation
+        if (!T_copy_additional_members_from_presentation(
+                ddsProperty,
+                presProperty)) {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &DDS_LOG_COPY_FAILURE_s,
+                    "additional members from presentation");
+            return DDS_RETCODE_ERROR;
+        }
+  #endif
+    }
+    return retcode;
+}
+
+/* Translate from PRES to DDS sequence without copying buffers */
+void TSeq_from_presentation_sequence_no_copy(
+        struct TSeq *dst,
+        const struct PRESSequenceProperty *src)
+{
+    if (!TSeq_initialize(dst)) {
+        return;
+    }
+
+    dst->_maximum = src->_maximum;
+    dst->_length = src->_length;
+    dst->_contiguous_buffer = (void *) src->_buffer;
+}
+
+DDS_ReturnCode_t TSeq_to_presentation_sequence(
+        const struct TSeq *src,
+        struct PRESSequenceProperty *dst)
+{
+    const char *METHOD_NAME = RTI_FUNCTION_NAME;
+    struct PRESProperty *presElement = NULL;
+    T *ddsElement = NULL;
+    DDS_Long length = 0,
+            i = 0;
+
+    length = TSeq_get_length(src);
+
+    if (length == 0) {
+        dst->_maximum = 0;
+        dst->_length = 0;
+        dst->_buffer = NULL;
+
+        /*
+         * Don't set the rest as there cannot be any strings in an empty
+         * sequence.
+         */
+        return DDS_RETCODE_OK;
+    }
+
+    /*
+     * Allocate space to store the sequence elements. We only shallow-copy
+     * the data as it will be deeply copied when the pres endpoint is created.
+     * NOTE: It is vital that this structure is free'd when the transformation
+     * is no longer needed.
+     */
+    RTIOsapiHeap_allocateArray(
+            &presElement,
+            TSeq_get_maximum(src),
+            struct PRESProperty);
+    if (presElement == NULL) {
+        DDSLog_exception(
+                METHOD_NAME,
+                &RTI_OSAPI_MEMORY_LOG_OUT_OF_HEAP_ARRAY_dd,
+                TSeq_get_maximum(src),
+                sizeof(struct PRESProperty));
+        return DDS_RETCODE_ERROR;
+    }
+
+    dst->_maximum = TSeq_get_maximum(src);
+    dst->_length = length;
+    dst->_buffer = presElement;
+
+    /* The strings are only shallow-copied. */
+    dst->_string_maximum = 0;
+    dst->_string_length = 0;
+    dst->_string_buffer = 0;
+    
+    for (i = 0; i < length; ++i) {
+        ddsElement = TSeq_get_reference(src, i);
+        if (ddsElement == NULL) {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &DDS_LOG_GET_FAILURE_s,
+                    "reference of source");
+            return DDS_RETCODE_ERROR;
+        }
+
+        presElement[i].name = ddsElement->name;
+        presElement[i].value = ddsElement->value;
+        presElement[i].propagate = RTI_FALSE;
+
+  #ifdef T_copy_additional_members_to_presentation
+        if (!T_copy_additional_members_to_presentation(
+                ddsElement,
+                &presElement[i])) {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &DDS_LOG_COPY_FAILURE_s,
+                    "additional members to presentation");
+            return DDS_RETCODE_ERROR;
+        }
+  #endif
+    }
+
+    return DDS_RETCODE_OK;
+}
+
+T *TSeq_lookup_element(struct TSeq *seq, const char *name)
+{
+    const char *METHOD_NAME = RTI_FUNCTION_NAME;
+    DDS_Long i = 0,
+            length = 0;
+    T *element = NULL;
+
+    if (name == NULL) {
+        DDSLog_exception(METHOD_NAME, &DDS_LOG_BAD_PARAMETER_s, "name");
+        return NULL;
+    }
+
+    length = TSeq_get_length(seq);
+
+    for (i = 0; i < length; ++i) {
+        element = TSeq_get_reference(seq, i);
+
+        if (element == NULL) {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &RTI_LOG_ANY_FAILURE_s,
+                    "get reference");
+            return NULL;
+        }
+
+        if (element->name == NULL) {
+            return NULL;
+        }
+
+        if (strcmp(element->name, name) == 0) {
+            return element;
+        }
+    }
+
+    return NULL;
+}
+
+DDS_ReturnCode_t TSeq_remove_element(struct TSeq *seq, const char *name)
+{
+    const char *METHOD_NAME = RTI_FUNCTION_NAME;
+    DDS_Long i = 0;
+    DDS_Long j = 0;
+    DDS_Long length = 0;
+    T *element = NULL,
+            *previousElement = NULL;
+
+    if (name == NULL) {
+        DDSLog_exception(METHOD_NAME, &DDS_LOG_BAD_PARAMETER_s, "name");
+        return DDS_RETCODE_BAD_PARAMETER;
+    }
+
+    length = TSeq_get_length(seq);
+
+    for (i = 0; i < length; i++) {
+        element = TSeq_get_reference(seq, i);
+
+        if (element == NULL) {
+            DDSLog_exception(METHOD_NAME, &DDS_LOG_GET_FAILURE_s, "reference");
+            return DDS_RETCODE_ERROR;
+        }
+
+        if (element->name == NULL) {
+            continue;
+        }
+
+        if (strcmp(element->name, name) == 0) {
+            previousElement = element;
+            DDS_String_free(element->name);
+            element->name = NULL;
+
+            if (element->value != NULL) {
+                DDS_String_free(element->value);
+                element->value = NULL;
+            }
+
+            for (j = i + 1; j < length; j++) {
+                element = TSeq_get_reference(seq, j);
+
+                if (element == NULL) {
+                    DDSLog_exception(
+                            METHOD_NAME,
+                            &DDS_LOG_GET_FAILURE_s,
+                            "reference");
+                    return DDS_RETCODE_ERROR;
+                }
+
+                previousElement->name = element->name;
+                previousElement->value = element->value;
+  #ifdef T_copy_additional_members
+                /* assumes deep copy = shallow copy */
+                if (!T_copy_additional_members(previousElement, element)) {
+                    DDSLog_exception(
+                            METHOD_NAME,
+                            &DDS_LOG_COPY_FAILURE_s,
+                            "additional members");
+                    return DDS_RETCODE_ERROR;
+                }
+  #endif
+                element->name = NULL;
+                element->value = NULL;
+                previousElement = element;
+            }
+
+            if (!TSeq_set_length(seq, length - 1)) {
+                DDSLog_exception(
+                        METHOD_NAME,
+                        &DDS_LOG_SET_FAILURE_s,
+                        "length");
+                return DDS_RETCODE_ERROR;
+            }
+
+            return DDS_RETCODE_OK;
+        }
+    }
+
+    return DDS_RETCODE_PRECONDITION_NOT_MET;
+}
+
+/*
+ * If elementOut is provided, this function sets it to the element so that the
+ * caller can set additional members if needed.
+ */
+DDS_ReturnCode_t TSeq_add_or_assert_element(
+        struct TSeq *seq,
+        T **elementOut,
+        const char *name,
+        const char *value,
+        RTIBool add,
+        const char *METHOD_NAME)
+{
+    T *element = NULL;
+    DDS_Long length = 0;
+    RTIBool increasedLength = RTI_FALSE;
+    DDS_ReturnCode_t retCode = DDS_RETCODE_ERROR;
+
+    if (elementOut != NULL) {
+        *elementOut = NULL;
+    }
+    if (name == NULL) {
+        DDSLog_exception(METHOD_NAME, &DDS_LOG_BAD_PARAMETER_s, "name");
+        return DDS_RETCODE_BAD_PARAMETER;
+    }
+
+    if (value == NULL) {
+        DDSLog_exception(METHOD_NAME, &DDS_LOG_BAD_PARAMETER_s, "value");
+        return DDS_RETCODE_BAD_PARAMETER;
+    }
+
+    /* Search for the element */
+    element = TSeq_lookup_element(seq, name);
+
+    if (element != NULL) {
+        if (add) {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &RTI_LOG_ANY_FAILURE_s,
+                    "new element. ELEMENT ALREADY EXISTS. "
+                    "EITHER REMOVE THIS CALL OR CALL assert_element INSTEAD.");
+            return DDS_RETCODE_PRECONDITION_NOT_MET;
+        }
+    } else {
+        length = TSeq_get_length(seq);
+
+        if (!TSeq_ensure_length(seq, length + 1, length + 10)) {
+            DDSLog_exception(METHOD_NAME, &DDS_LOG_SET_FAILURE_s, "length");
+            return DDS_RETCODE_ERROR;
+        }
+        increasedLength = RTI_TRUE;
+
+        element = TSeq_get_reference(seq, length);
+
+        if (element == NULL) {
+            DDSLog_exception(METHOD_NAME, &DDS_LOG_GET_FAILURE_s, "reference");
+            goto done;
+        }
+
+        if (DDS_String_replace(&element->name, name) == NULL) {
+            DDSLog_exception(METHOD_NAME, &DDS_LOG_OUT_OF_RESOURCES_s, "name");
+            retCode = DDS_RETCODE_OUT_OF_RESOURCES;
+            goto done;
+        }
+    }
+
+    if (DDS_String_replace(&element->value, value) == NULL) {
+        DDSLog_exception(METHOD_NAME, &DDS_LOG_OUT_OF_RESOURCES_s, "value");
+        retCode = DDS_RETCODE_OUT_OF_RESOURCES;
+        goto done;
+    }
+
+    if (elementOut != NULL) {
+        *elementOut = element;
+    }
+    retCode = DDS_RETCODE_OK;
+done:
+
+    if (retCode != DDS_RETCODE_OK) {
+        if (increasedLength) {
+            if (element != NULL) {
+                TSeq_finalize_element(element);
+            }
+            RTIOsapiUtility_unusedReturnValue(
+                    TSeq_set_length(seq, length),
+                    DDS_Boolean);
+        }
+    }
+    return retCode;
+}
+
+DDS_ReturnCode_t TSeq_add_element(
+        struct TSeq *seq,
+        T **elementOut,
+        const char *name,
+        const char *value)
+{
+    return TSeq_add_or_assert_element(
+            seq,
+            elementOut,
+            name,
+            value,
+            RTI_TRUE, /* add */
+            RTI_FUNCTION_NAME);
+}
+
+DDS_ReturnCode_t TSeq_assert_element(
+        struct TSeq *seq,
+        T **elementOut,
+        const char *name,
+        const char *value)
+{
+    return TSeq_add_or_assert_element(
+            seq,
+            elementOut,
+            name,
+            value,
+            RTI_FALSE, /* add */
+            RTI_FUNCTION_NAME);
+}
+
+/* Translate from PRES to DDS sequence, borrowing a buffer from a pool */
+DDS_Boolean TSeq_from_presentation_sequence_loan_from_pool(
+        struct TSeq *dst,
+        const struct PRESSequenceProperty *src,
+        struct REDAFastBufferPool *pool,
+        DDS_Long maxElements)
+{
+    const char *METHOD_NAME = RTI_FUNCTION_NAME;
+    void *buffer = NULL;
+
+    buffer = REDAFastBufferPool_getBuffer(pool);
+    if (buffer == NULL) {
+        DDSLog_warn(
+                METHOD_NAME,
+                &DDS_LOG_OUT_OF_RESOURCES_s,
+                "element buffer pool");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    if (!TSeq_loan_contiguous(
+            dst,
+            buffer,
+            0,
+            maxElements)) {
+        DDSLog_exception(
+                METHOD_NAME,
+                &RTI_LOG_ANY_FAILURE_s,
+                "loan contiguous from element buffer");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    if (TSeq_from_presentation_sequence(dst, src) != DDS_RETCODE_OK) {
+        DDSLog_exception(METHOD_NAME, &DDS_LOG_GET_FAILURE_s, "sequence");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    return DDS_BOOLEAN_TRUE;
+}
+
+/* Return loan and return buffer to pool */
+void TSeq_return_loan_to_pool(struct TSeq *seq, struct REDAFastBufferPool *pool)
+{
+    const char *METHOD_NAME = NULL;
+    void *buffer = NULL;
+    DDS_Long length = 0,
+            i = 0;
+    T *element = NULL;
+
+    buffer = TSeq_get_contiguous_bufferI(seq);
+    if ((buffer != NULL) && !TSeq_has_ownership(seq)) {
+        length = TSeq_get_length(seq);
+	for (i = 0; i < length; ++i) {
+            element = TSeq_get_reference(seq, i);
+            TSeq_finalize_element(element);
+	}
+        if (!TSeq_unloan(seq)) {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &DDS_LOG_SET_FAILURE_s,
+                    "unloan contiguous buffer");
+        }
+        REDAFastBufferPool_returnBuffer(pool, buffer);
+    }
+}
+
+/* Outputs text representation of configuration */
+void TSeq_save(
+        const struct TSeq *self,
+        struct RTIXMLSaveContext *dst,
+        const char *policyTagName,
+        const char *sequenceTagName)
+{
+    DDS_Long i = 0,
+            len = 0;
+    DDSLog_preconditionOnly(const char *METHOD_NAME = RTI_FUNCTION_NAME;)
+
+    DDSLog_testPrecondition(self == NULL, return);
+    DDSLog_testPrecondition(dst == NULL, return);
+    DDSLog_testPrecondition(policyTagName == NULL, return);
+    DDSLog_testPrecondition(sequenceTagName == NULL, return);
+
+    DDS_XMLHELPER_CHECK_ERROR(dst);
+
+    len = TSeq_get_length(self);
+    if (len <= 0) {
+        return;
+    }
+
+    DDS_XMLHelper_save_tag(policyTagName, DDS_XMLHELPER_SAVE_INDENT, dst);
+    DDS_XMLHelper_save_tag(sequenceTagName, DDS_XMLHELPER_SAVE_NEWLINE, dst);
+
+    dst->depth++;
+    for (i = 0; i < len; ++i) {
+        const char *elementTag = "element";
+        T *element = NULL;
+
+        element = TSeq_get_reference(self, i);
+        DDSLog_testPrecondition(element == NULL, return);
+        if ((element->name != NULL) && (element->value != NULL)) {
+            DDS_XMLHelper_save_tag(elementTag, DDS_XMLHELPER_SAVE_TAG_START, dst);
+            DDS_XMLHelper_save_string("name", element->name, dst);
+            DDS_XMLHelper_save_string("value", element->value, dst);
+            DDS_XMLHelper_save_tag(elementTag, DDS_XMLHELPER_SAVE_TAG_END, dst);
+        }
+    }
+
+    DDS_XMLHelper_save_tag(
+            sequenceTagName,
+            DDS_XMLHELPER_SAVE_INDENT
+                    | DDS_XMLHELPER_SAVE_DEC_BEFORE
+                    | DDS_XMLHELPER_SAVE_CLOSE_TAG,
+            dst);
+    DDS_XMLHelper_save_tag(
+            policyTagName,
+            DDS_XMLHELPER_SAVE_NEWLINE | DDS_XMLHELPER_SAVE_CLOSE_TAG,
+            dst);
+}
+
+#undef initialize_element_c
+#undef TSeq_initialize_element
+
+#undef finalize_element_c
+#undef TSeq_finalize_element
+
+#undef copy_element_c
+#undef TSeq_copy_element
+
+#undef from_presentation_sequence_c
+#undef TSeq_from_presentation_sequence
+
+#undef from_presentation_sequence_no_copy_c
+#undef TSeq_from_presentation_sequence_no_copy
+
+#undef to_presentation_sequence_c
+#undef TSeq_to_presentation_sequence
+
+#undef lookup_element_c
+#undef TSeq_lookup_element
+
+#undef remove_element_c
+#undef TSeq_remove_element
+
+#undef add_or_assert_element_c
+#undef TSeq_add_or_assert_element
+
+#undef add_element_c
+#undef TSeq_add_element
+
+#undef assert_element_c
+#undef TSeq_assert_element
+
+#undef from_presentation_sequence_loan_from_pool_c
+#undef TSeq_from_presentation_sequence_loan_from_pool
+
+#undef return_loan_to_pool_c
+#undef TSeq_return_loan_to_pool
+
+#undef save_c
+#undef TSeq_save
+
+#endif /* RTI_NAME_VALUE_SEQ */
+
+/* ----------------------------------------------------------------- */
+/* End $Id$ */

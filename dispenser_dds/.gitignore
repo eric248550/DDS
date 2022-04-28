@@ -1,0 +1,7 @@
+.DS_STORE
+.bash_history
+.viminfo
+.objs/
+.ssh
+.cache/
+.sudo_as_admin_successful

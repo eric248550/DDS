@@ -1,0 +1,244 @@
+/* (c) Copyright 2003-2018, Real-Time Innovations, Inc. All rights reserved. */
+/* $Id$
+ (c) Copyright, Real-Time Innovations, 2004-2016.
+ All rights reserved.
+ No duplications, whole or partial, manual or electronic, may be made
+ without express written permission.  Any such copies, or
+ revisions thereof, must display this notice unaltered.
+ This code contains trade secrets of Real-Time Innovations, Inc.
+
+modification history
+--------------------
+============================================================================ */
+
+#if defined(T) || defined(TSeq)
+
+#define DDS_CURRENT_SUBMODULE DDS_SUBMODULE_MASK_INTERPRETER
+
+#define concatenate(A, B)   A ## B
+
+#define get_member_value_pointer_c(T) concatenate(T, _get_member_value_pointer)
+#define T_get_member_value_pointer get_member_value_pointer_c(T)
+
+#define set_member_element_count_c(TSeq) concatenate(TSeq, _set_member_element_count)
+#define TSeq_set_member_element_count set_member_element_count_c(TSeq)
+
+#if defined(T)
+RTIXCdrMemberValue T_get_member_value_pointer(
+    void *sample,
+    RTIXCdrUnsignedLong *elementCount,
+    RTIXCdrUnsignedLongLong bindingMemberValueOffset,
+    RTIXCdrUnsignedLong elementIndex,
+    const struct RTIXCdrTypeCode *memberTc,
+    const struct RTIXCdrTypeCodeMember *memberInfo,
+    RTIXCdrBoolean allocateMemberIfNull,
+    void *programData)
+{
+    const char *METHOD_NAME = RTI_FUNCTION_NAME;
+    RTIXCdrMemberValue val;
+    T *typeVal;
+
+    val.isNull = RTI_XCDR_FALSE;
+    val.value.ptr = NULL;
+
+    RTIOsapiUtility_unusedParameter(elementIndex);
+    RTIOsapiUtility_unusedParameter(programData);
+    RTIOsapiUtility_unusedParameter(memberTc);
+    RTIOsapiUtility_unusedParameter(elementCount);
+
+    if (memberInfo != NULL && RTIXCdrTypeCodeMember_isOptional(memberInfo)) {
+        T **typeValRef = NULL;
+
+        typeValRef = (T **)
+                        (((char *)sample) + bindingMemberValueOffset);
+        typeVal = *typeValRef;
+
+        if (typeVal == NULL) {
+            if (!allocateMemberIfNull) {
+                val.isNull = RTI_XCDR_TRUE;
+                return val;
+            } else {
+#if defined(ALIAS_OF_ARRAY)
+                *typeValRef = new (std::nothrow) T [1];
+#else
+                *typeValRef = new (std::nothrow) T;
+#endif
+
+                if (*typeValRef == NULL) {
+                    DDSLog_exception(
+                            METHOD_NAME,
+                            &RTI_LOG_CREATION_FAILURE_s,
+                            "member");
+                    return val;
+                }
+#if !defined(CONSTRUCTOR)
+                if (memberTc->_typePlugin != NULL &&
+                    memberTc->_typePlugin->initializeSampleFnc != NULL) {
+                    if (!memberTc->_typePlugin->initializeSampleFnc(
+                         *typeValRef,
+                         1,
+                         1)) {
+                        DDSLog_exception(
+                            METHOD_NAME,
+                            &RTI_LOG_INIT_FAILURE_s,
+                            "member");
+#if defined(ALIAS_OF_ARRAY)
+                        delete [] *typeValRef;
+#else
+                        delete *typeValRef;
+#endif
+                        return val;
+                    }
+                }
+#endif
+                typeVal = *typeValRef;
+            }
+        }
+    } else {
+        typeVal = (T *)
+                (((char *)sample) + bindingMemberValueOffset);
+    }
+
+    val.value.ptr = (char *)typeVal;
+    return val;
+}
+#endif
+
+#if defined(TSeq)
+RTIXCdrMemberValue TSeq_set_member_element_count(
+        RTIXCdrBoolean *failure,
+        void *sample,
+        RTIXCdrUnsignedLong elementCount,
+        RTIXCdrUnsignedLongLong bindingMemberValueOffset,
+        const struct RTIXCdrTypeCode *memberTc,
+        const struct RTIXCdrTypeCodeMember *memberInfo,
+        RTIXCdrBoolean allocateMemberIfNull,
+        RTIXCdrBoolean trimToSize,
+        void *programData)
+{
+    const char *METHOD_NAME = RTI_FUNCTION_NAME;
+    RTIXCdrMemberValue val;
+    TSeq *seqVal;
+    TSeq **seqValRef = NULL;
+    RTIBool newSeq = RTI_FALSE;
+    const struct RTIXCdrTypeCode *elementTc = NULL;
+    DDS_Long oldMax = 0;
+
+    *failure = RTI_XCDR_TRUE;
+    val.isNull = RTI_XCDR_FALSE;
+    val.value.ptr = NULL;
+
+    RTIOsapiUtility_unusedParameter(programData);
+    RTIOsapiUtility_unusedParameter(memberTc);
+
+    if (memberInfo != NULL && RTIXCdrTypeCodeMember_isOptional(memberInfo)) {
+        seqValRef = (TSeq **)
+                        (((char *)sample) + bindingMemberValueOffset);
+        seqVal = *seqValRef;
+
+        if (seqVal == NULL) {
+            if (!allocateMemberIfNull) {
+                val.isNull = RTI_XCDR_TRUE;
+                *failure = RTI_XCDR_FALSE;
+                return val;
+            } else {
+                *seqValRef = new (std::nothrow) TSeq;
+
+                if (*seqValRef == NULL) {
+                    DDSLog_exception(
+                            METHOD_NAME,
+                            &RTI_LOG_CREATION_FAILURE_s,
+                            "sequence");
+                    return val;
+                }
+
+                newSeq = RTI_TRUE;
+                seqVal = *seqValRef;
+
+                if (!trimToSize) {
+                    if (!seqVal->maximum(memberTc->_maximumLength)) {
+                        DDSLog_exception(
+                                METHOD_NAME,
+                                &DDS_LOG_SET_FAILURE_s,
+                                "sequence maximum");
+                        delete seqVal;
+                        return val;
+                    }
+                }
+            }
+        }
+    } else {
+        seqVal = (TSeq *)
+                (((char *)sample) + bindingMemberValueOffset);
+    }
+
+    if (trimToSize) {
+        oldMax = seqVal->maximum();
+        if (!seqVal->maximum(elementCount)) {
+            DDSLog_exception(
+                    METHOD_NAME,
+                    &DDS_LOG_SET_FAILURE_s,
+                    "sequence maximum");
+            return val;
+        }
+    }
+    if (!seqVal->length(elementCount)) {
+        DDSLog_exception(
+                METHOD_NAME,
+                &DDS_LOG_SET_FAILURE_s,
+                "sequence length");
+        return val;
+    }
+
+    if (!newSeq) {
+        if (!trimToSize || oldMax == (DDS_Long)elementCount) {
+            elementTc = memberTc->_typeCode;
+
+            if (elementTc->_typePlugin != NULL &&
+                        elementTc->_typePlugin->initializeSampleFnc != NULL)
+            {
+                RTIXCdrUnsignedLong i = 0;
+                RTIXCdrUnsignedLong typeSize;
+                char * elPtr = NULL;
+
+                typeSize = elementTc->_sampleAccessInfo->typeSize[0];
+                elPtr = (char *)seqVal->_contiguous_buffer;
+
+                for (i=0; i<elementCount; i++) {
+                    /* The memory for the elements should be allocated. This is
+                     * why we pass RTI_FALSE to initialize func
+                     */
+                    if (!elementTc->_typePlugin->initializeSampleFnc(
+                            elPtr,
+                            RTI_FALSE,
+                            RTI_FALSE)) {
+                        DDSLog_exception(
+                                METHOD_NAME,
+                                &RTI_LOG_INIT_FAILURE_s,
+                                "sequence element");
+                        return val;
+                    }
+                    elPtr += typeSize;
+                }
+            }
+        }
+    }
+
+    *failure = RTI_XCDR_FALSE;
+    val.value.ptr = (char *)seqVal->_contiguous_buffer;
+    return val;
+}
+#endif
+
+#undef concatenate
+
+#undef get_member_value_pointer_c
+#undef Type_get_member_value_pointer
+
+#undef set_member_element_count_c
+#undef TypeSeq_set_member_element_count
+
+#undef DDS_CURRENT_SUBMODULE
+
+#endif
+

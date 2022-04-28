@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=6.0.0
+Name=RTI Launcher
+GenericName=RTI Launcher
+Exec="/home/vagrant/rti_connext_dds-6.0.0/bin/rtilauncher" %f
+Terminal=false
+Hidden=false
+Icon=/home/vagrant/rti_connext_dds-6.0.0/resource/app/app_support/launcher/icons/RTI_Launcher_Dock-Icon_256x256.png
+Type=Application
+Categories=Development
+MimeType=application/rti-package
+

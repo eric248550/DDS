@@ -1,0 +1,25 @@
+UploadTime,2022-04-28 17:36:34
+Hot_Valve,0
+Cooling,0
+Usage_L,382
+Warm_Valve,0
+ColdTemp_Insulation,10.0
+Status,1
+Usage_MT,0
+WaterLevel,15
+ErrorCode,0
+HotTemp_Insulation,98.0
+Device_ID,xinxing06
+Refilling,0
+SavingPower,0
+TimeStamp,1651138594014
+Heating,0
+Cold_Valve,0
+WarmTemp,29.9
+ColdTemp,5.6
+Usage_CC,588
+HotTemp,99.0
+Sterilizing,0
+Hardware,PI
+Mac_Address,B8:27:EB:A2:EB:8F
+TDS,68

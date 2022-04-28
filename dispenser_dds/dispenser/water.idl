@@ -1,0 +1,28 @@
+struct WaterDispenser{
+string<32> UploadTime;
+long Hot_Valve;
+long Cooling;
+long Usage_L;
+long Warm_Valve;
+long ColdTemp_Insulation;
+long Status;
+long Usage_MT;
+long WaterLevel;
+long ErrorCode;
+long HotTemp_Insulation;
+string<32> Device_ID;
+long Refilling;
+long SavingPower;
+long long TimeStamp;
+long Heating;
+long Cold_Valve;
+long WarmTemp;
+long ColdTemp;
+long Usage_CC;
+long HotTemp;
+long Sterilizing;
+string<4> Hardware;
+string<32> Mac_Address;
+long TDS;
+long long SendTime;
+};
